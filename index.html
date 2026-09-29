@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="2026秋季99天英语听力学习与打卡计划">
+  <meta name="theme-color" content="#f7f0e3">
+  <title>The English Trail · 99天英语探险</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <a class="skip-link" href="#today-card">跳到今日课程</a>
+  <header class="site-header">
+    <div class="site-title">
+      <p class="eyebrow">2026 AUTUMN · A LISTENING JOURNAL</p>
+      <h1>The English Trail<span aria-hidden="true">.</span></h1>
+      <p class="site-subtitle">99天英语探险 <span>2026.09.30 — 2027.01.22</span></p>
+    </div>
+    <div class="header-stats" aria-label="学习统计">
+      <div class="score-stat"><span class="stat-label">旅程积分</span><span><span class="star" aria-hidden="true">★</span> <strong id="score">0</strong> <span class="stat-total">/ 495</span></span></div>
+      <div><span class="stat-label">连续学习</span><span><strong id="streak">0</strong> <span class="stat-total">天</span></span></div>
+    </div>
+  </header>
+
+  <main>
+    <p id="status-message" class="status-message" role="status" aria-live="polite" aria-atomic="true"></p>
+    <noscript><p class="error-state">请启用浏览器 JavaScript，以查看99天课程和保存学习进度。</p></noscript>
+    <div class="dashboard-grid">
+      <div class="main-column">
+        <section id="today-card" aria-labelledby="today-heading" tabindex="-1"></section>
+        <section id="all-courses" aria-labelledby="courses-heading">
+          <div class="section-heading">
+            <div><p class="eyebrow">FULL JOURNEY</p><h2 id="courses-heading">全部课程</h2></div>
+            <button type="button" id="jump-today">回到今天 <span aria-hidden="true">↗</span></button>
+          </div>
+          <div id="course-list"></div>
+        </section>
+      </div>
+      <aside class="journey-sidebar" aria-label="学习旅程">
+        <section id="semester-progress" aria-label="学期进度"></section>
+        <nav id="journey" aria-label="四阶段旅程"></nav>
+        <section id="week-route" aria-label="本周路线"></section>
+      </aside>
+    </div>
+  </main>
+
+  <footer class="site-footer">
+    <p>每周一至周六，听见一点新世界。<span>学习进度仅保存在当前浏览器。</span></p>
+    <button type="button" id="reset-progress" class="danger-link">重置全部进度</button>
+  </footer>
+
+  <dialog id="confirm-dialog" aria-labelledby="dialog-title" aria-describedby="dialog-copy">
+    <form method="dialog">
+      <h2 id="dialog-title">确认操作</h2>
+      <p id="dialog-copy"></p>
+      <div class="dialog-actions">
+        <button type="submit" value="cancel" autofocus>取消</button>
+        <button type="submit" value="confirm" class="danger-button">确认</button>
+      </div>
+    </form>
+  </dialog>
+
+  <script type="module" src="./app.mjs"></script>
+</body>
+</html>
