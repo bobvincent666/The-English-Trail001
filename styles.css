@@ -150,7 +150,7 @@ progress::-moz-progress-bar { background: var(--forest); border-radius: 1rem; }
 .week-cell small { color: var(--muted); font-size: .65rem; font-weight: 400; }
 .week-cell.is-current, .week-cell[aria-current="date"] { border-color: var(--terracotta); background: var(--paper); }
 .week-cell.is-current small, .week-cell[aria-current="date"] small { color: var(--ink); }
-.week-cell.is-complete { border-color: var(--forest-dark); color: var(--surface); background: var(--forest-dark); }
+.week-cell.is-complete, .week-cell.is-complete:hover:not(:disabled), .week-cell.is-complete:focus-visible { border-color: var(--forest-dark); color: var(--surface); background: var(--forest-dark); }
 .week-cell.is-complete small { color: inherit; }
 .week-cell.is-rest { border-style: dashed; color: var(--muted); }
 #all-courses { margin-top: 2.25rem; }
