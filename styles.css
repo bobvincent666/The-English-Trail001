@@ -52,7 +52,7 @@ button, .primary-action, .load-video {
   transition: color .15s, background-color .15s, transform .15s;
 }
 a { color: var(--forest-dark); text-underline-offset: .2em; overflow-wrap: anywhere; }
-button:hover:not(:disabled), .primary-action:hover, .load-video:hover { background: var(--paper); }
+button:where(:hover:not(:disabled)) { background: var(--paper); }
 button:disabled { color: var(--muted); background: var(--paper); cursor: not-allowed; }
 :focus-visible { outline: 3px solid var(--forest-dark); outline-offset: 4px; }
 [hidden] { display: none !important; }
