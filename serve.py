@@ -8,4 +8,4 @@ class Handler(SimpleHTTPRequestHandler):
 
 
 if __name__ == "__main__":
-    test(HandlerClass=Handler, port=8080)
+    test(HandlerClass=Handler, port=8080, bind="127.0.0.1")

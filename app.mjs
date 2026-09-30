@@ -25,7 +25,7 @@ export function loadProgress(storage) {
       !Object.entries(parsed.taskChecks).every(([id, checks]) =>
         byId.has(id) && Array.isArray(checks) && checks.every(value => typeof value === "boolean")) ||
       !Object.entries(parsed.checkIns).every(([id, timestamp]) =>
-        byId.has(id) && typeof timestamp === "string")
+        byId.has(id) && typeof timestamp === "string" && timestamp === new Date(timestamp).toISOString())
     ) return emptyProgress();
     return parsed;
   } catch {

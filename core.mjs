@@ -61,10 +61,23 @@ export function validateCourses(courses) {
     if (course.dayNumber !== index + 1) errors.push(`${course.id}: invalid dayNumber`);
     if (dates.has(course.date)) errors.push(`${course.id}: duplicate date`);
     dates.add(course.date);
-    if (new Date(`${course.date}T12:00:00Z`).getUTCDay() === 0) errors.push(`${course.id}: Sunday is not allowed`);
+    const date = new Date(`${course.date}T12:00:00Z`);
+    const validDate = /^\d{4}-\d{2}-\d{2}$/.test(course.date) &&
+      !Number.isNaN(date.valueOf()) && date.toISOString().slice(0, 10) === course.date;
+    if (!validDate) errors.push(`${course.id}: invalid date`);
+    else if (date.getUTCDay() === 0) errors.push(`${course.id}: Sunday is not allowed`);
     if (course.date < "2026-09-30" || course.date > "2027-01-22") errors.push(`${course.id}: date out of range`);
     if (!course.title || !course.source || !course.url) errors.push(`${course.id}: missing display data`);
-    if (!Array.isArray(course.tasks) || course.tasks.length < 3 || course.tasks.length > 5) errors.push(`${course.id}: invalid tasks`);
+    if (course.url) {
+      try {
+        if (new URL(course.url).protocol !== "https:") errors.push(`${course.id}: invalid URL`);
+      } catch {
+        errors.push(`${course.id}: invalid URL`);
+      }
+    }
+    if (!Array.isArray(course.tasks) || course.tasks.length < 3 || course.tasks.length > 5 ||
+      !course.tasks.every(task => typeof task === "string" && task.trim())) errors.push(`${course.id}: invalid tasks`);
+    if (course.kind === "youtube" && !/^[A-Za-z0-9_-]{11}$/.test(course.videoId)) errors.push(`${course.id}: invalid YouTube ID`);
   });
   return errors;
 }

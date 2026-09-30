@@ -90,6 +90,26 @@ test("the production catalog validates", () => {
   assert.deepEqual(validateCourses(COURSES), []);
 });
 
+test("course validation rejects impossible calendar dates", () => {
+  const invalid = COURSES.map((item, index) => index === 0 ? { ...item, date: "2026-11-31" } : item);
+  assert.ok(validateCourses(invalid).includes("day-001: invalid date"));
+});
+
+test("course validation rejects malformed resource URLs", () => {
+  const invalid = COURSES.map((item, index) => index === 0 ? { ...item, url: "not-a-url" } : item);
+  assert.ok(validateCourses(invalid).includes("day-001: invalid URL"));
+});
+
+test("course validation rejects empty task strings", () => {
+  const invalid = COURSES.map((item, index) => index === 0 ? { ...item, tasks: ["", " ", "\t"] } : item);
+  assert.ok(validateCourses(invalid).includes("day-001: invalid tasks"));
+});
+
+test("course validation rejects malformed YouTube IDs", () => {
+  const invalid = COURSES.map(item => item.kind === "youtube" ? { ...item, videoId: "bad" } : item);
+  assert.ok(validateCourses(invalid).some(error => error.endsWith(": invalid YouTube ID")));
+});
+
 test("course validation reports count, order, dates, required fields and tasks", () => {
   const invalid = [
     { ...course, dayNumber: 2, date: "2026-10-04", title: "", tasks: ["one"] },
@@ -129,6 +149,15 @@ test("malformed saved progress cannot break rendering", () => {
   assert.deepEqual(loadProgress(storage), emptyProgress());
   const nested = { getItem: () => JSON.stringify({ version: 1, taskChecks: { "day-001": "true" }, checkIns: {} }) };
   assert.deepEqual(loadProgress(nested), emptyProgress());
+});
+
+test("empty or invalid saved check-in timestamps cannot award points", () => {
+  for (const timestamp of ["", "not-a-date", "2026-02-30T12:00:00.000Z"]) {
+    const storage = { getItem: () => JSON.stringify({ version: 1, taskChecks: {}, checkIns: { "day-001": timestamp } }) };
+    const progress = loadProgress(storage);
+    assert.deepEqual(progress, emptyProgress(), timestamp);
+    assert.equal(score(progress), 0);
+  }
 });
 
 test("short saved checks stay incomplete when a later task is checked", () => {
