@@ -192,3 +192,55 @@ test("rerender updates existing course cards without replacing their DOM", () =>
     else globalThis.document = previous;
   }
 });
+
+test("one check-in click cannot also open cancellation", async () => {
+  const listeners = new Map();
+  let dialogOpens = 0;
+  const button = {
+    id: "",
+    dataset: { action: "check-in", courseId: "" },
+    classList: { contains: () => false },
+    closest: selector => selector === "button" ? button : null,
+    focus() {}
+  };
+  const field = () => ({ textContent: "", value: 0, classList: { toggle() {} } });
+  const card = {
+    dataset: { courseId: "" },
+    classList: { toggle() {} },
+    querySelector: selector => selector === "button[data-action]" ? button : selector === ".status-badge" ? null : field(),
+    querySelectorAll: () => []
+  };
+  const today = {
+    querySelector: () => card.dataset.courseId ? card : null,
+    set innerHTML(markup) {
+      card.dataset.courseId = markup.match(/data-course-id="(day-\d+)"/)[1];
+      button.dataset.courseId = card.dataset.courseId;
+    }
+  };
+  const list = { firstElementChild: null, set innerHTML(_) {} };
+  const dialog = { returnValue: "", addEventListener() {}, showModal() { dialogOpens += 1; } };
+  const saved = {
+    version: 1,
+    taskChecks: Object.fromEntries(COURSES.map(item => [item.id, item.tasks.map(() => true)])),
+    checkIns: {}
+  };
+  const storage = { getItem: () => JSON.stringify(saved), setItem() {} };
+  const oldDocument = globalThis.document;
+  const oldWindow = globalThis.window;
+  globalThis.document = {
+    addEventListener: (name, handler) => listeners.set(name, handler),
+    getElementById: id => id === "today-card" ? today : id === "course-list" ? list : id === "confirm-dialog" ? dialog : field()
+  };
+  globalThis.window = { localStorage: storage };
+  try {
+    await import("../app.mjs?single-check-in-click");
+    listeners.get("click")({ target: button });
+    assert.equal(button.dataset.action, "cancel");
+    assert.equal(dialogOpens, 0);
+  } finally {
+    if (oldDocument === undefined) delete globalThis.document;
+    else globalThis.document = oldDocument;
+    if (oldWindow === undefined) delete globalThis.window;
+    else globalThis.window = oldWindow;
+  }
+});

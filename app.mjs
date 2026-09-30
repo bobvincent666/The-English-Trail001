@@ -124,6 +124,7 @@ function initializeApp() {
     if (button.dataset.action === "check-in" && course && !progress.checkIns[course.id] && canCheckIn(progress, course)) {
       persistAndRender(checkIn(progress, course), "已获得5积分");
       button.focus();
+      return;
     }
     if (button.dataset.action === "cancel" && course && progress.checkIns[course.id]) {
       openConfirmation({
