@@ -12,6 +12,7 @@ import {
   validateCourses
 } from "../core.mjs";
 import { COURSES } from "../courses.mjs";
+import { loadProgress, saveProgress, currentCourse, sourceAction, youtubeEmbed } from "../app.mjs";
 
 const course = {
   id: "day-001",
@@ -105,4 +106,47 @@ test("course validation reports count, order, dates, required fields and tasks",
     "day-002: Sunday is not allowed",
     "day-002: missing display data"
   ]);
+});
+
+test("progress round-trips through the storage boundary", () => {
+  const values = new Map();
+  const storage = {
+    getItem: key => values.get(key) ?? null,
+    setItem: (key, value) => values.set(key, value)
+  };
+  const progress = { version: 1, taskChecks: { "day-001": [true] }, checkIns: {} };
+  saveProgress(storage, progress);
+  assert.deepEqual(loadProgress(storage), progress);
+});
+
+test("invalid saved JSON falls back to empty progress", () => {
+  const storage = { getItem: () => "not-json" };
+  assert.deepEqual(loadProgress(storage), emptyProgress());
+});
+
+test("malformed saved progress cannot break rendering", () => {
+  const storage = { getItem: () => JSON.stringify({ version: 1, taskChecks: "bad", checkIns: [] }) };
+  assert.deepEqual(loadProgress(storage), emptyProgress());
+  const nested = { getItem: () => JSON.stringify({ version: 1, taskChecks: { "day-001": "true" }, checkIns: {} }) };
+  assert.deepEqual(loadProgress(nested), emptyProgress());
+});
+
+test("course selection uses the next scheduled lesson on Sundays and clamps the range", () => {
+  assert.equal(currentCourse("2026-09-01").dayNumber, 1);
+  assert.equal(currentCourse("2026-10-04").dayNumber, 5);
+  assert.equal(currentCourse("2027-02-01").dayNumber, 99);
+});
+
+test("resource actions keep external links and load the privacy-enhanced player on demand", () => {
+  const video = COURSES.find(item => item.kind === "youtube");
+  assert.match(sourceAction(video), /data-video-id=/);
+  assert.match(sourceAction(video), /target="_blank" rel="noopener noreferrer"/);
+  assert.doesNotMatch(sourceAction(video), /iframe/);
+  assert.match(youtubeEmbed(video), /youtube-nocookie\.com\/embed\//);
+  assert.match(sourceAction(COURSES[1]), /打开 British Council 课程/);
+});
+
+test("resource markup rejects unsafe URLs and escapes course titles", () => {
+  assert.equal(sourceAction({ ...COURSES[1], url: "javascript:alert(1)" }), "");
+  assert.match(youtubeEmbed({ ...COURSES[2], title: '<img src=x onerror="alert(1)">' }), /&lt;img/);
 });
