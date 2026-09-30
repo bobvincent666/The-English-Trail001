@@ -6,8 +6,8 @@ export function setTaskChecked(progress, course, taskIndex, checked) {
   if (taskIndex < 0 || taskIndex >= course.tasks.length) {
     throw new RangeError("Task index is outside the course task list");
   }
-  const current = progress.taskChecks[course.id] ?? course.tasks.map(() => false);
-  const next = [...current];
+  const current = progress.taskChecks[course.id] ?? [];
+  const next = course.tasks.map((_, index) => current[index] === true);
   next[taskIndex] = Boolean(checked);
   return {
     ...progress,
@@ -17,7 +17,7 @@ export function setTaskChecked(progress, course, taskIndex, checked) {
 
 export function canCheckIn(progress, course) {
   const checks = progress.taskChecks[course.id] ?? [];
-  return checks.length === course.tasks.length && checks.every(Boolean);
+  return checks.length === course.tasks.length && course.tasks.every((_, index) => checks[index] === true);
 }
 
 export function checkIn(progress, course, timestamp = new Date().toISOString()) {

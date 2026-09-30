@@ -39,7 +39,6 @@ export function saveProgress(storage, progress) {
 
 let progress = emptyProgress();
 let storage;
-const expandedCourses = new Set();
 const loadedVideos = new Set();
 const byId = new Map(COURSES.map(course => [course.id, course]));
 const escapeHtml = value => String(value).replace(/[&<>"']/g, character => ({
@@ -124,21 +123,19 @@ function initializeApp() {
     }
     if (button.dataset.action === "check-in" && course && !progress.checkIns[course.id] && canCheckIn(progress, course)) {
       persistAndRender(checkIn(progress, course), "已获得5积分");
+      button.focus();
     }
     if (button.dataset.action === "cancel" && course && progress.checkIns[course.id]) {
       openConfirmation({
         title: "取消这次打卡？",
         copy: `第${course.dayNumber}天将扣回5积分，已勾选的任务会保留。`,
-        onConfirm: () => persistAndRender(cancelCheckIn(progress, course), "已取消打卡，扣回5积分")
+        onConfirm: () => {
+          persistAndRender(cancelCheckIn(progress, course), "已取消打卡，扣回5积分");
+          button.focus();
+        }
       });
     }
   });
-  document.getElementById("course-list").addEventListener("toggle", event => {
-    const details = event.target;
-    if (!details.matches("details[data-course-id]")) return;
-    if (details.open) expandedCourses.add(details.dataset.courseId);
-    else expandedCourses.delete(details.dataset.courseId);
-  }, true);
   renderApp();
 }
 
@@ -151,8 +148,14 @@ function renderApp() {
   renderCourseList();
 }
 
-function renderToday(course) {
-  document.getElementById("today-card").innerHTML =
+export function renderToday(course) {
+  const host = document.getElementById("today-card");
+  const card = host.querySelector(".course-card");
+  if (card?.dataset.courseId === course.id) {
+    syncCourseCard(card, course);
+    return;
+  }
+  host.innerHTML =
     `<p class="eyebrow">TODAY'S TRAIL · 今日课程</p><h2 id="today-heading">第${course.dayNumber}天 · ${escapeHtml(course.title)}</h2>` +
     courseCard(course, true, true);
 }
@@ -194,18 +197,44 @@ function renderWeekRoute(course) {
     }).join("")}</div><p class="course-hint">可提前学习，也可补做过去的课程。</p>`;
 }
 
-function renderCourseList() {
+export function renderCourseList() {
+  const host = document.getElementById("course-list");
+  if (host.firstElementChild) {
+    for (const course of COURSES) syncCourseCard(document.getElementById(`course-${course.id}`), course);
+    return;
+  }
   const weeks = new Map();
   for (const course of COURSES) {
     const start = weekStart(course.date);
     if (!weeks.has(start)) weeks.set(start, []);
     weeks.get(start).push(course);
   }
-  document.getElementById("course-list").innerHTML = [...weeks].map(([start, courses], index) => `
+  host.innerHTML = [...weeks].map(([start, courses], index) => `
     <section class="course-week" aria-label="第${index + 1}周">
       <h3 class="week-heading"><span>第${index + 1}周 · ${start} — ${courses.at(-1).date}</span><span>${courses.length} 节课</span></h3>
-      ${courses.map(course => courseCard(course, expandedCourses.has(course.id))).join("")}
+      ${courses.map(course => courseCard(course)).join("")}
     </section>`).join("");
+}
+
+function syncCourseCard(card, course) {
+  const checks = progress.taskChecks[course.id] ?? [];
+  const checked = course.tasks.filter((_, index) => checks[index] === true).length;
+  const done = Boolean(progress.checkIns[course.id]);
+  card.classList.toggle("is-complete", done);
+  card.classList.toggle("is-current", !done && course.date === todayISO());
+  card.querySelector(".progress-label span:last-child").textContent = `${checked} / ${course.tasks.length}`;
+  card.querySelector("progress").value = checked;
+  for (const input of card.querySelectorAll("input[data-task-index]")) {
+    input.checked = checks[Number(input.dataset.taskIndex)] === true;
+  }
+  const badge = card.querySelector(".status-badge");
+  if (badge) badge.textContent = done ? "已完成" : course.date < todayISO() ? "过去" : course.date === todayISO() ? "今天" : "未来";
+  const button = card.querySelector("button[data-action]");
+  button.className = done ? "danger-link" : "check-in";
+  button.dataset.action = done ? "cancel" : "check-in";
+  button.disabled = !done && !canCheckIn(progress, course);
+  button.textContent = done ? "取消打卡" : "完成打卡 · +5积分";
+  card.querySelector(".course-actions .course-hint").textContent = done ? "已完成 · 获得5积分" : "完成全部任务后即可打卡";
 }
 
 function courseCard(course, expanded = false, today = false) {

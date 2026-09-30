@@ -12,7 +12,7 @@ import {
   validateCourses
 } from "../core.mjs";
 import { COURSES } from "../courses.mjs";
-import { loadProgress, saveProgress, currentCourse, sourceAction, youtubeEmbed } from "../app.mjs";
+import { loadProgress, saveProgress, currentCourse, sourceAction, youtubeEmbed, renderToday, renderCourseList } from "../app.mjs";
 
 const course = {
   id: "day-001",
@@ -131,6 +131,23 @@ test("malformed saved progress cannot break rendering", () => {
   assert.deepEqual(loadProgress(nested), emptyProgress());
 });
 
+test("short saved checks stay incomplete when a later task is checked", () => {
+  const course = COURSES[0];
+  const saved = { version: 1, taskChecks: { [course.id]: [true] }, checkIns: {} };
+  const storage = { getItem: () => JSON.stringify(saved) };
+  const progress = setTaskChecked(loadProgress(storage), course, 3, true);
+  assert.deepEqual(progress.taskChecks[course.id], [true, false, false, true]);
+  assert.equal(canCheckIn(progress, course), false);
+  assert.throws(() => checkIn(progress, course), /Complete every task/);
+  assert.equal(score(progress), 0);
+});
+
+test("sparse task arrays cannot satisfy check-in", () => {
+  const checks = [true, , , true];
+  const progress = { version: 1, taskChecks: { "day-001": checks }, checkIns: {} };
+  assert.equal(canCheckIn(progress, COURSES[0]), false);
+});
+
 test("course selection uses the next scheduled lesson on Sundays and clamps the range", () => {
   assert.equal(currentCourse("2026-09-01").dayNumber, 1);
   assert.equal(currentCourse("2026-10-04").dayNumber, 5);
@@ -149,4 +166,29 @@ test("resource actions keep external links and load the privacy-enhanced player 
 test("resource markup rejects unsafe URLs and escapes course titles", () => {
   assert.equal(sourceAction({ ...COURSES[1], url: "javascript:alert(1)" }), "");
   assert.match(youtubeEmbed({ ...COURSES[2], title: '<img src=x onerror="alert(1)">' }), /&lt;img/);
+});
+
+test("rerender updates existing course cards without replacing their DOM", () => {
+  const field = () => ({ textContent: "", dataset: {}, className: "", value: 0, disabled: false });
+  const card = {
+    dataset: { courseId: COURSES[0].id },
+    classList: { toggle() {} },
+    querySelector: () => field(),
+    querySelectorAll: () => []
+  };
+  const host = {
+    firstElementChild: card,
+    querySelector: () => card,
+    set innerHTML(_) { throw new Error("existing course DOM was replaced"); }
+  };
+  const previous = globalThis.document;
+  globalThis.document = { getElementById: id => id.startsWith("course-") ? card : host };
+  try {
+    renderToday(COURSES[0]);
+    renderCourseList();
+    assert.equal(host.firstElementChild, card);
+  } finally {
+    if (previous === undefined) delete globalThis.document;
+    else globalThis.document = previous;
+  }
 });
